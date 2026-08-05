@@ -23,6 +23,10 @@ struct GeneratedFile {
     content: String,
 }
 
+pub fn installed(project: &Project) -> bool {
+    project.root().join(COMPOSE_RELATIVE).is_file()
+}
+
 pub fn add(project: &Project, dry_run: bool, force: bool) -> Result<()> {
     let generated = generated_files();
     let env_path = project.root().join(".env.example");
@@ -104,6 +108,22 @@ pub fn up(project: &Project) -> Result<()> {
     let roundtrip = run_roundtrip(project, &amqp_url)?;
     println!("{}", roundtrip.trim());
     println!("Prêt : exportez RABBITMQ_URL pour cibler un broker distant sans changer le code.");
+    Ok(())
+}
+
+pub fn down(project: &Project) -> Result<()> {
+    ensure_generated(project)?;
+    let mut command = Command::new("docker");
+    command
+        .arg("compose")
+        .arg("-p")
+        .arg(project.compose_project_name())
+        .arg("-f")
+        .arg(project.root().join(COMPOSE_RELATIVE))
+        .arg("down");
+    let output = run_output(&mut command, "docker compose down")?;
+    ensure_success(&output, "l'arrêt de RabbitMQ")?;
+    println!("RabbitMQ arrêté ; le volume de données est conservé.");
     Ok(())
 }
 
@@ -371,6 +391,12 @@ fn merge_env(existing: &str) -> Result<String> {
         ("RABBITMQ_URL", DEFAULT_AMQP_URL),
         ("TOOLBOX_RABBITMQ_MANAGEMENT_URL", "http://127.0.0.1:15672"),
     ];
+    if defaults
+        .iter()
+        .all(|(key, _)| contains_assignment(existing, key))
+    {
+        return Ok(existing.to_owned());
+    }
     let mut body = Vec::new();
     for (key, value) in defaults {
         if !contains_assignment(&base, key) {
@@ -440,13 +466,13 @@ fn relative_display(root: &Path, path: &Path) -> String {
 
 const COMPOSE: &str = r#"services:
   rabbitmq:
-    image: rabbitmq:4.3.3-management
+    image: rabbitmq:4.3.3-management@sha256:d8b3d416236ae5ba3f6a9f4e4651fdacda01780181a7d83a71b640248d8f0a69
     environment:
       RABBITMQ_DEFAULT_USER: toolbox
       RABBITMQ_DEFAULT_PASS: toolbox-local-only
     ports:
-      - "${TOOLBOX_RABBITMQ_PORT:-5672}:5672"
-      - "${TOOLBOX_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+      - "127.0.0.1:${TOOLBOX_RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${TOOLBOX_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:

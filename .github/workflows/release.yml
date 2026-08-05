@@ -1,0 +1,108 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${GITHUB_REF_NAME}"
+          --repo "${GITHUB_REPOSITORY}"
+          --title "devtoolbox ${GITHUB_REF_NAME}"
+          --generate-notes
+          --verify-tag
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            archive: toolbox-linux-x86_64.tar.gz
+          - runner: ubuntu-24.04-arm
+            archive: toolbox-linux-aarch64.tar.gz
+          - runner: macos-15-intel
+            archive: toolbox-macos-x86_64.tar.gz
+          - runner: macos-latest
+            archive: toolbox-macos-aarch64.tar.gz
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact revision
+        run: |
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Build and package
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+        run: |
+          cargo +stable build --release --locked
+          mkdir -p dist/package
+          cp target/release/toolbox LICENSE README.md dist/package/
+          tar -C dist/package -czf "dist/${ARCHIVE}" toolbox LICENSE README.md
+          cd dist
+          shasum -a 256 "${ARCHIVE}" > "${ARCHIVE}.sha256"
+
+      - name: Transfer packaged archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.archive }}
+          path: |
+            dist/${{ matrix.archive }}
+            dist/${{ matrix.archive }}.sha256
+          if-no-files-found: error
+
+  publish:
+    needs: [build, create-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        archive:
+          - toolbox-linux-x86_64.tar.gz
+          - toolbox-linux-aarch64.tar.gz
+          - toolbox-macos-x86_64.tar.gz
+          - toolbox-macos-aarch64.tar.gz
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download packaged archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ matrix.archive }}
+          path: dist
+
+      - name: Attest release archive
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: dist/${{ matrix.archive }}
+
+      - name: Upload release assets
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${GITHUB_REF_NAME}"
+          "dist/${ARCHIVE}"
+          "dist/${ARCHIVE}.sha256"
+          --repo "${GITHUB_REPOSITORY}"
+          --clobber

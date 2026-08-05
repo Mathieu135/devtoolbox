@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevToolbox Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f5f1e8;
+      --muted: #a8a49b;
+      --panel: rgba(24, 25, 27, .88);
+      --line: rgba(255, 255, 255, .1);
+      --orange: #ff7043;
+      --mint: #6ee7b7;
+      --violet: #a78bfa;
+      --red: #fb7185;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(255, 112, 67, .22), transparent 32rem),
+        radial-gradient(circle at 90% 15%, rgba(167, 139, 250, .18), transparent 28rem),
+        #0d0e10;
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: linear-gradient(to bottom, black, transparent 70%);
+    }
+    main { width: min(1160px, calc(100% - 32px)); margin: 0 auto; padding: 44px 0 72px; position: relative; }
+    nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 58px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 750; letter-spacing: -.02em; }
+    .mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #111; background: var(--orange); box-shadow: 0 0 35px rgba(255,112,67,.3); }
+    .mark svg { width: 19px; }
+    .eyebrow { color: var(--orange); text-transform: uppercase; font-weight: 750; letter-spacing: .14em; font-size: 12px; }
+    h1 { max-width: 780px; margin: 10px 0 18px; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spacing: -.055em; font-weight: 760; }
+    .lede { color: var(--muted); max-width: 650px; font-size: 18px; margin: 0 0 38px; }
+    .status-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(0,0,0,.2); color: var(--muted); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #777; box-shadow: 0 0 0 4px rgba(255,255,255,.04); }
+    .status.online .dot { background: var(--mint); box-shadow: 0 0 15px var(--mint); }
+    .status.online { color: var(--ink); }
+    .grid { display: grid; grid-template-columns: 1.18fr .82fr; gap: 18px; margin-top: 50px; }
+    .card { border: 1px solid var(--line); border-radius: 24px; background: var(--panel); backdrop-filter: blur(18px); overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.25); }
+    .card-head { padding: 24px 26px 20px; display: flex; justify-content: space-between; align-items: start; gap: 20px; border-bottom: 1px solid var(--line); }
+    .service { display: flex; align-items: center; gap: 12px; }
+    .service-icon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-weight: 900; color: #111; }
+    .rabbit { background: var(--orange); }
+    .redis { background: var(--red); }
+    h2 { font-size: 20px; margin: 0; letter-spacing: -.025em; }
+    .sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    code { font: 12px/1.5 "SFMono-Regular", Consolas, monospace; color: #d8d3c7; }
+    .command { padding: 7px 10px; border-radius: 8px; background: #0b0c0e; border: 1px solid var(--line); white-space: nowrap; }
+    .content { padding: 26px; }
+    label { display: block; color: var(--muted); margin-bottom: 8px; font-size: 13px; }
+    .composer { display: flex; gap: 10px; }
+    input { width: 100%; min-width: 0; border: 1px solid var(--line); background: #0e0f11; color: var(--ink); border-radius: 12px; padding: 13px 15px; outline: none; font: inherit; }
+    input:focus { border-color: rgba(255,112,67,.7); box-shadow: 0 0 0 3px rgba(255,112,67,.12); }
+    button { border: 0; border-radius: 12px; padding: 0 17px; min-height: 48px; font: 700 14px/1 inherit; cursor: pointer; transition: transform .15s, filter .15s; }
+    button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    button:disabled { cursor: wait; opacity: .55; transform: none; }
+    .primary { background: var(--orange); color: #18110e; }
+    .secondary { width: 100%; background: var(--red); color: #19090d; margin-top: 22px; }
+    .checkbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 22px; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0,0,0,.18); }
+    .check-button { min-height: 38px; padding: 0 13px; color: var(--ink); background: rgba(255,255,255,.08); border: 1px solid var(--line); }
+    .check-result { color: var(--muted); font: 11px/1.4 "SFMono-Regular", Consolas, monospace; text-align: right; }
+    .check-result.ok { color: var(--mint); }
+    .check-result.error { color: var(--red); }
+    .flow { display: flex; align-items: center; gap: 7px; margin: 18px 0 24px; color: var(--muted); font-size: 12px; }
+    .flow span { border: 1px solid var(--line); padding: 5px 8px; border-radius: 7px; }
+    .flow b { color: var(--orange); font-weight: 500; }
+    .timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 9px; }
+    .timeline-head strong { font-size: 13px; }
+    .timeline-head span { color: var(--muted); font-size: 11px; text-align: right; }
+    .timeline { display: grid; gap: 9px; min-height: 162px; }
+    .message { display: grid; grid-template-columns: 9px 1fr auto; gap: 12px; align-items: start; padding: 13px 14px; border-radius: 12px; background: rgba(255,255,255,.035); border: 1px solid transparent; }
+    .message:hover { border-color: var(--line); }
+    .message .bullet { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--mint); box-shadow: 0 0 11px rgba(110,231,183,.55); }
+    .message p { margin: 0; overflow-wrap: anywhere; }
+    .meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .time { color: var(--muted); font: 11px "SFMono-Regular", monospace; }
+    .empty { display: grid; place-items: center; min-height: 150px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; text-align: center; padding: 20px; }
+    .counter { font-size: clamp(64px, 10vw, 110px); font-weight: 780; line-height: 1; letter-spacing: -.07em; margin: 12px 0 2px; color: var(--ink); }
+    .counter-label { color: var(--muted); }
+    .proof { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 19px; display: grid; gap: 12px; }
+    .proof-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); font-size: 13px; }
+    .proof-row strong { color: var(--mint); font-weight: 650; }
+    .toast { position: fixed; right: 20px; bottom: 20px; max-width: 360px; padding: 13px 16px; color: var(--ink); background: #232528; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 50px rgba(0,0,0,.4); transform: translateY(120px); opacity: 0; transition: .25s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: rgba(251,113,133,.5); }
+    footer { margin-top: 28px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 16px; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } nav { margin-bottom: 42px; } .command { display: none; } }
+    @media (max-width: 520px) { main { width: min(100% - 20px, 1160px); padding-top: 20px; } .composer { flex-direction: column; } .primary { min-height: 48px; } .card-head, .content { padding-left: 18px; padding-right: 18px; } footer { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m8 5-5 7 5 7M16 5l5 7-5 7M14 3l-4 18"/></svg></span>DevToolbox</div>
+      <code>interactive-poc / rust</code>
+    </nav>
+
+    <section>
+      <div class="eyebrow">Infrastructure qui se voit</div>
+      <h1>Un clic. Deux services. Zéro magie.</h1>
+      <p class="lede">Chaque action ci-dessous traverse réellement le service annoncé. Les messages ne sont affichés qu’après consommation par RabbitMQ ; le compteur vit dans Redis.</p>
+      <div class="status-row">
+        <div class="status" id="rabbit-status"><i class="dot"></i><span>RabbitMQ · connexion…</span></div>
+        <div class="status" id="redis-status"><i class="dot"></i><span>Redis · connexion…</span></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <header class="card-head">
+          <div class="service"><div class="service-icon rabbit">Q</div><div><h2>File de messages</h2><p class="sub">RabbitMQ · publish → consume → ACK</p></div></div>
+          <code class="command">toolbox add rabbitmq</code>
+        </header>
+        <div class="content">
+          <form id="message-form">
+            <label for="message">Message à faire traverser dans la queue</label>
+            <div class="composer"><input id="message" maxlength="240" autocomplete="off" placeholder="Ex. Préparer la facture #2048" value="Hello depuis le site"><button class="primary" type="submit">Envoyer</button></div>
+          </form>
+          <div class="flow"><span>navigateur</span><b>→</b><span>API Rust</span><b>→</b><span>RabbitMQ</span><b>→</b><span>consumer</span></div>
+          <div class="checkbar"><button class="check-button" id="check-rabbitmq" type="button">Tester RabbitMQ</button><span class="check-result" id="rabbitmq-check-result">Sonde prête</span></div>
+          <div class="timeline-head"><strong>Historique local</strong><span>messages déjà consommés et ACKés</span></div>
+          <div class="timeline" id="messages"><div class="empty">Le premier message automatique arrive…</div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <div class="service"><div class="service-icon redis">R</div><div><h2>État persistant</h2><p class="sub">Redis · atomic INCR</p></div></div>
+          <code class="command">toolbox add redis</code>
+        </header>
+        <div class="content">
+          <div class="counter" id="counter">—</div>
+          <div class="counter-label">clics conservés dans Redis</div>
+          <button class="secondary" id="increment" type="button">Incrémenter dans Redis</button>
+          <div class="checkbar"><button class="check-button" id="check-redis" type="button">Tester Redis</button><span class="check-result" id="redis-check-result">Sonde prête</span></div>
+          <div class="proof">
+            <div class="proof-row"><span>Commande exécutée</span><strong>INCR</strong></div>
+            <div class="proof-row"><span>Stockage</span><strong>volume Docker</strong></div>
+            <div class="proof-row"><span>Après redémarrage</span><strong>valeur conservée</strong></div>
+          </div>
+        </div>
+      </article>
+    </section>
+    <footer><span>Les ports sont liés à 127.0.0.1 uniquement.</span><span>Actualisation automatique toutes les 1,2 s.</span></footer>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const messages = document.querySelector('#messages');
+    const counter = document.querySelector('#counter');
+    const rabbitStatus = document.querySelector('#rabbit-status');
+    const redisStatus = document.querySelector('#redis-status');
+    const rabbitCheckResult = document.querySelector('#rabbitmq-check-result');
+    const redisCheckResult = document.querySelector('#redis-check-result');
+    const toast = document.querySelector('#toast');
+
+    function status(element, online, label) {
+      element.classList.toggle('online', online);
+      element.querySelector('span').textContent = label;
+    }
+
+    function notify(text, error = false) {
+      toast.textContent = text;
+      toast.classList.toggle('error', error);
+      toast.classList.add('show');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    function renderMessages(items) {
+      messages.replaceChildren();
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'En attente du consumer RabbitMQ…';
+        messages.append(empty);
+        return;
+      }
+      for (const item of items.slice(0, 6)) {
+        const row = document.createElement('div');
+        row.className = 'message';
+        const bullet = document.createElement('i');
+        bullet.className = 'bullet';
+        const body = document.createElement('div');
+        const text = document.createElement('p');
+        text.textContent = item.text;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = `consommé + ACK · ${item.origin}`;
+        const time = document.createElement('div');
+        time.className = 'time';
+        time.textContent = new Date(item.published_at_ms).toLocaleTimeString('fr-FR');
+        body.append(text, meta);
+        row.append(bullet, body, time);
+        messages.append(row);
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('/api/state');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        status(rabbitStatus, data.rabbitmq.online, `RabbitMQ · ${data.rabbitmq.online ? 'online' : 'erreur'}`);
+        status(redisStatus, data.redis.online, `Redis · ${data.redis.online ? 'online' : 'erreur'}`);
+        counter.textContent = data.redis_counter;
+        renderMessages(data.consumed_messages);
+      } catch (error) {
+        status(rabbitStatus, false, 'API Rust · indisponible');
+        status(redisStatus, false, 'Services · inconnus');
+      }
+    }
+
+    document.querySelector('#message-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = event.currentTarget.querySelector('button');
+      const input = document.querySelector('#message');
+      button.disabled = true;
+      try {
+        const response = await fetch('/api/messages', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: input.value }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Publication refusée');
+        notify(`Message ${data.message_id} publié dans RabbitMQ`);
+        input.value = '';
+        setTimeout(refresh, 180);
+      } catch (error) { notify(error.message, true); }
+      finally { button.disabled = false; input.focus(); }
+    });
+
+    document.querySelector('#increment').addEventListener('click', async (event) => {
+      event.currentTarget.disabled = true;
+      try {
+        const response = await fetch('/api/redis/increment', { method: 'POST' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Redis indisponible');
+        counter.textContent = data.value;
+        notify(`Redis a persisté la valeur ${data.value}`);
+      } catch (error) { notify(error.message, true); }
+      finally { event.currentTarget.disabled = false; }
+    });
+
+    async function runCheck(button, result, endpoint, service, statusElement) {
+      button.disabled = true;
+      result.className = 'check-result';
+      result.textContent = 'Vérification…';
+      try {
+        const response = await fetch(endpoint, { method: 'POST' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `${service} indisponible`);
+        result.classList.add('ok');
+        result.textContent = `OK · ${data.latency_ms} ms`;
+        status(statusElement, true, `${service} · vérifié`);
+        notify(`${service} : ${data.detail} en ${data.latency_ms} ms`);
+        await refresh();
+      } catch (error) {
+        result.classList.add('error');
+        result.textContent = 'Échec du check';
+        status(statusElement, false, `${service} · erreur`);
+        notify(error.message, true);
+      } finally { button.disabled = false; }
+    }
+
+    document.querySelector('#check-rabbitmq').addEventListener('click', (event) => {
+      runCheck(event.currentTarget, rabbitCheckResult, '/api/checks/rabbitmq', 'RabbitMQ', rabbitStatus);
+    });
+
+    document.querySelector('#check-redis').addEventListener('click', (event) => {
+      runCheck(event.currentTarget, redisCheckResult, '/api/checks/redis', 'Redis', redisStatus);
+    });
+
+    refresh();
+    setInterval(refresh, 1200);
+  </script>
+</body>
+</html>

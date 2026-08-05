@@ -1,0 +1,86 @@
+name: Retour bêta v0.1.0
+description: Partager les mesures du scénario bêta sans donnée sensible
+title: "[beta v0.1.0] "
+labels:
+  - beta-feedback
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci. Ne publiez aucun secret, token, URL privée ou dump d'environnement.
+        Le protocole complet se trouve dans `docs/beta-test.md`.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plateforme
+      options:
+        - macOS ARM64
+        - macOS x86_64
+        - Linux ARM64
+        - Linux x86_64
+    validations:
+      required: true
+  - type: input
+    id: first-service
+    attributes:
+      label: Minutes jusqu'au premier service utilisable
+      placeholder: "Ex. 7"
+    validations:
+      required: true
+  - type: input
+    id: total-time
+    attributes:
+      label: Minutes jusqu'à la fin du scénario
+      placeholder: "Ex. 16"
+    validations:
+      required: true
+  - type: input
+    id: help-count
+    attributes:
+      label: Nombre d'aides humaines synchrones
+      placeholder: "Ex. 0"
+    validations:
+      required: true
+  - type: input
+    id: blocking-errors
+    attributes:
+      label: Nombre d'erreurs bloquantes non résolues
+      placeholder: "Ex. 0"
+    validations:
+      required: true
+  - type: checkboxes
+    id: completed
+    attributes:
+      label: Étapes terminées
+      options:
+        - label: Installation et `toolbox --help`
+        - label: Ajout et démarrage de RabbitMQ et Redis
+        - label: Actions et checks dans le site
+        - label: Diagnostic CLI
+        - label: Arrêt des services
+  - type: textarea
+    id: explanation
+    attributes:
+      label: Pourquoi RabbitMQ peut-il afficher zéro message alors que le site montre un historique ?
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: Première friction rencontrée et contournement éventuel
+      description: Paraphrasez les erreurs si elles risquent de contenir une donnée privée.
+    validations:
+      required: true
+  - type: textarea
+    id: current-method
+    attributes:
+      label: Comment auriez-vous fait sans devtoolbox ?
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Vérification avant publication
+      options:
+        - label: Mon retour ne contient aucun secret, token, URL privée ou dump d'environnement.
+          required: true

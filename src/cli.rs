@@ -33,21 +33,36 @@ pub enum Command {
         force: bool,
     },
 
-    /// Démarre le service local, attend sa disponibilité et teste un aller-retour.
+    /// Démarre un service, ou tous les services installés si aucun n'est précisé.
     Up {
-        #[arg(value_enum, default_value_t = Service::Rabbitmq)]
-        service: Service,
+        #[arg(value_enum)]
+        service: Option<Service>,
     },
 
-    /// Explique l'état du service et teste la connexion réellement utilisée.
+    /// Diagnostique un service, ou tous les services installés.
     Doctor {
-        #[arg(value_enum, default_value_t = Service::Rabbitmq)]
-        service: Service,
+        #[arg(value_enum)]
+        service: Option<Service>,
+    },
+
+    /// Arrête un service local, ou tous les services installés, sans supprimer les volumes.
+    Down {
+        #[arg(value_enum)]
+        service: Option<Service>,
     },
 }
 
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum Service {
-    #[default]
     Rabbitmq,
+    Redis,
+}
+
+impl Service {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Rabbitmq => "RabbitMQ",
+            Self::Redis => "Redis",
+        }
+    }
 }
