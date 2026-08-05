@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        run: |
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+
+      - name: Install stable Rust components
+        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+
+      - name: Check root crate
+        run: |
+          cargo +stable fmt --all -- --check
+          cargo +stable test --locked
+          cargo +stable clippy --all-targets --all-features --locked -- -D warnings
+
+      - name: Check interactive demo
+        run: |
+          cargo +stable fmt --manifest-path demo/rust-app/Cargo.toml -- --check
+          cargo +stable test --manifest-path demo/rust-app/Cargo.toml --locked
+          cargo +stable clippy --manifest-path demo/rust-app/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Validate installer syntax
+        run: bash -n scripts/install.sh

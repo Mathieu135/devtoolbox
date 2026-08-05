@@ -128,3 +128,70 @@ fn up_refuses_a_remote_url_before_calling_docker() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("uniquement le provider local"));
     assert!(!String::from_utf8_lossy(&output.stdout).contains("Démarrage"));
 }
+
+#[test]
+fn redis_add_is_idempotent_and_coexists_with_rabbitmq() {
+    let project = rust_project();
+
+    for service in ["rabbitmq", "redis"] {
+        let output = toolbox(project.path())
+            .args(["add", service])
+            .output()
+            .expect("add service");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    let env = fs::read_to_string(project.path().join(".env.example")).expect("generated env");
+    assert_eq!(env.matches("RABBITMQ_URL=").count(), 1);
+    assert_eq!(env.matches("REDIS_URL=").count(), 1);
+    assert!(project.path().join(".toolbox/redis/compose.yaml").is_file());
+
+    for service in ["rabbitmq", "redis"] {
+        let output = toolbox(project.path())
+            .args(["add", service])
+            .output()
+            .expect("repeat add service");
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).contains("unchanged"));
+        assert_eq!(
+            fs::read_to_string(project.path().join(".env.example")).unwrap(),
+            env
+        );
+    }
+}
+
+#[test]
+fn redis_up_refuses_a_remote_url_before_calling_docker() {
+    let project = rust_project();
+    let added = toolbox(project.path())
+        .args(["add", "redis"])
+        .output()
+        .expect("add redis");
+    assert!(added.status.success());
+
+    let output = toolbox(project.path())
+        .args(["up", "redis"])
+        .env("REDIS_URL", "rediss://cache.example/")
+        .output()
+        .expect("refused remote up");
+
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("uniquement le provider local"));
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("Démarrage de Redis"));
+}
+
+#[test]
+fn up_without_an_installed_service_explains_how_to_start() {
+    let project = rust_project();
+    let output = toolbox(project.path())
+        .arg("up")
+        .output()
+        .expect("empty up");
+
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("aucun service installé"));
+}
