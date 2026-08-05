@@ -1,0 +1,18 @@
+[package]
+name = "devtoolbox"
+version = "0.1.0"
+edition = "2024"
+description = "POC d'une toolbox développeur qui câble et diagnostique des dépendances locales"
+license = "MIT"
+
+[[bin]]
+name = "toolbox"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+url = "2.5"
+
+[dev-dependencies]
+tempfile = "3.23"
